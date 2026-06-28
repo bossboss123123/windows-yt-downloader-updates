@@ -23,11 +23,18 @@ jobs:
         run: |
           pyinstaller --onefile --noconsole --name YTDownloaderServer server.py
 
+      - name: Download yt-dlp and ffmpeg
+        run: |
+          mkdir bin
+          curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -o bin/yt-dlp.exe
+          curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/ffmpeg.exe" -o bin/ffmpeg.exe
+
       - name: Package zip
         run: |
           mkdir release
           copy dist\YTDownloaderServer.exe release\
-          mkdir release\bin
+          xcopy bin release\bin\ /E /I
+          xcopy extension release\extension\ /E /I
           copy install.bat release\
           copy uninstall.bat release\
           copy reset_license.bat release\
