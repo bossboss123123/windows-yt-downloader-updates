@@ -1,0 +1,43 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Build EXE
+        run: |
+          pyinstaller --onefile --noconsole --name YTDownloaderServer server.py
+
+      - name: Package zip
+        run: |
+          mkdir release
+          copy dist\YTDownloaderServer.exe release\
+          mkdir release\bin
+          copy install.bat release\
+          copy uninstall.bat release\
+          copy reset_license.bat release\
+          copy config.json release\
+          copy README.txt release\
+          cd release
+          powershell Compress-Archive -Path * -DestinationPath ..\YT_Downloader_Windows_v4_0_7.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YT_Downloader_Windows
+          path: YT_Downloader_Windows_v4_0_7.zip
