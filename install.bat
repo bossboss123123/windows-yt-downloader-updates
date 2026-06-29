@@ -14,30 +14,21 @@ echo ═════════════════════════
 pause
 
 echo.
-echo [1/5] 檢查 yt-dlp...
-if not exist "bin\yt-dlp.exe" (
-    echo 下載 yt-dlp...
-    curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -o "bin\yt-dlp.exe"
-)
+echo [1/4] 停止舊版 server...
+taskkill /f /im YTDownloaderServer.exe >nul 2>&1
+timeout /t 1 >nul
 
-echo [2/5] 檢查 ffmpeg...
-if not exist "bin\ffmpeg.exe" (
-    echo 下載 ffmpeg...
-    curl -L "https://github.com/yt-dlp/yt-dlp/releases/latest/download/ffmpeg.exe" -o "bin\ffmpeg.exe" 2>nul || (
-        echo 請手動下載 ffmpeg 放入 bin\ 資料夾
-    )
-)
-
-echo [3/5] 安裝背景服務...
+echo [2/4] 安裝背景服務...
 schtasks /delete /tn "YTDownloaderServer" /f >nul 2>&1
 schtasks /create /tn "YTDownloaderServer" /tr "\"%~dp0YTDownloaderServer.exe\"" /sc ONLOGON /ru "%USERNAME%" /f >nul
 
-echo [4/5] 啟動服務...
-schtasks /run /tn "YTDownloaderServer" >nul
+echo [3/4] 啟動服務...
+start "" "%~dp0YTDownloaderServer.exe"
 timeout /t 3 >nul
 
-echo [5/5] 輸入序號...
+echo [4/4] 輸入序號...
 echo ────────────────────────────────────
+
 :input_license
 set /p LICENSE_KEY=請輸入序號：
 if "%LICENSE_KEY%"=="" (
@@ -45,17 +36,23 @@ if "%LICENSE_KEY%"=="" (
     goto input_license
 )
 
-for /f "delims=" %%i in ('curl -s -X POST http://127.0.0.1:8765/license/activate -H "Content-Type: application/json" -d "{\"license\":\"%LICENSE_KEY%\"}"') do set RESULT=%%i
+curl -s -X POST http://127.0.0.1:8765/license/activate ^
+  -H "Content-Type: application/json" ^
+  -d "{\"license\":\"%LICENSE_KEY%\"}" > tmp_result.txt 2>nul
 
-echo %RESULT% | findstr "\"valid\": true" >nul
+findstr /C:"\"valid\": true" tmp_result.txt >nul
 if %errorlevel%==0 (
     echo ✓ 序號啟用成功！
+    del tmp_result.txt
+    goto done
 ) else (
     echo ✗ 啟用失敗，請確認序號正確
+    del tmp_result.txt 2>nul
     set /p RETRY=重試？(y/n)：
     if /i "%RETRY%"=="y" goto input_license
 )
 
+:done
 echo.
 echo ════════════════════════════════════
 echo   ✓ 安裝完成！
